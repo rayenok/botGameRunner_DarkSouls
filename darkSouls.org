@@ -1,0 +1,824 @@
+#+TITLE:    botGameRunner - Dark Souls
+#+AUTHOR:    Eric Nova
+#+EMAIL:     ericnova3@gmail.com
+#+DATE:      2014-02
+#+DESCRIPTION:
+#+KEYWORDS:
+#+LANGUAGE:  en
+#+OPTIONS:   H:3 num:t toc:t \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
+#+OPTIONS:   TeX:t LaTeX:t skip:nil d:nil todo:t pri:nil tags:not-in-toc
+#+INFOJS_OPT: view:nil toc:nil ltoc:t mouse:underline buttons:0 path:http://orgmode.org/org-info.js
+#+EXPORT_SELECT_TAGS: export
+#+EXPORT_EXCLUDE_TAGS: noexport
+#+LINK_UP:   
+#+LINK_HOME: 
+#+XSLT:
+#+LATEX_HEADER: \usepackage[margin=3cm]{geometry}
+
+* Dark souls
+** Preparation
+*** Header
+**** Requeriments
+For being able to import and execute most of the code, you will need to import this libraries. 
+I recommend you to use python 2.7 32 bit version. There is some libraries we will need to use which only have 32 bits version and if you are using the 64 bits python version, you will have problems
+to make it work. 
+
+[[http://avaminzhang.wordpress.com/2011/11/24/python-version-2-7-required-which-was-not-found-in-the-registry/][Here]] a website explaining how to do it in case you need it.\\
+
+Win32api and win32com are in the same module pywin32 which you can download using the [[http://sourceforge.net/projects/pywin32/files/][this link]]
+**** Code
+#+BEGIN_SRC python :results silent :noweb-ref header 
+import win32api
+import time
+import win32com.client
+  
+KEYEVENTF_EXTENDEDKEY = 0x0001
+KEYEVENTF_KEYUP = 0x0002
+#+END_SRC
+*** Dictionary of keys
+#+NAME: Dictionary of keys and makeCodeToBreakCode function
+#+BEGIN_SRC python :results silent :tangle src/dictionary.py :noweb-ref keyDictionary
+  # You can use this function to obtain the break code from the make
+  def makeCodeToBreakCode(make):
+      return "0x{:02x}".format(make+0x80)
+  
+  HW_KEY2CODE= {
+      'backspace': 0x0E, # Cancel menu
+      'tab': 0x0F, # Counter-attack
+      'enter': 0x1C, # Accept
+      'shift': 0x2A, # Shield defense
+      'ctrl': 0x1D, # Walk slow
+      'alt': 0x38, # Switch one-handed, dual-handed
+      'spacebar': 0x39, # Dodge
+      'end': 0xCF, # Menu
+      'home': 0xC7, # Windows live
+      'a': 0x1E, # Move Left
+      'c': 0x2E, # Change left hand
+      'd': 0x20, # Move right
+      'e': 0x12, # Activate consumable
+      'f': 0x21, # Change consumable
+      'g': 0x22, # Gesture
+      'h': 0x23, # Light attack
+      'i': 0x17, # Move up camera
+      'j': 0x24, # Move left camera
+      'k': 0x25, # Move down camera
+      'l': 0x26, # Move right camera
+      'o': 0x18, # Puts the camera behind the character and lock enemies
+      'r': 0x13, # Change spell
+      's': 0x1F, # Move back
+      'u': 0x16, # Heavy attack
+      'v': 0x2F, # Change right hand
+      'w': 0x11, # Move forward
+      'q': 0x10, # Pick up objects/open doors 
+      'arrowUp': 0xC8, # Move up menu
+      'arrowDown': 0xD0, # Move down menu
+      'arrowLeft': 0xCB, # Move left menu
+      'arrowRight': 0xCD, # Move right menu
+      'pageUp': 0xC9, # Move to right menu
+      'pageDown': 0xC1 # Move to left menu
+  }
+  
+  HW_ACTION2CODE= {
+      'cancel':  0x0E, # Cancel menu
+      'counter': 0x0F, # Counter-attack
+      'accept': 0x1C, # Accept
+      'defense': 0x2A, # Shield defense
+      'slow': 0x1D, # Walk slow
+      'switchWield': 0x38, # Switch one-handed, dual-handed
+      'dodge': 0x39, # Dodge
+      'menu': 0xCF, # Menu
+      'windowsLive': 0xC7, # Windows live
+      'left': 0x1E, # Move Left
+      'changeLeft': 0x2E, # Change left hand
+      'right': 0x20, # Move right
+      'useObject': 0x12, # Activate consumable
+      'changeObject': 0x21, # Change consumable
+      'gesture': 0x22, # Gesture
+      'light': 0x23, # Light attack
+      'cameraUp': 0x17, # Move up camera
+      'cameraLeft': 0x24, # Move left camera
+      'cameraDown': 0x25, # Move down camera
+      'cameraRight': 0x26, # Move right camera
+      'lock': 0x18, # Puts the camera behind the character and lock enemies
+      'changeSpell': 0x13, # Change spell
+      'back': 0x1F, # Move back
+      'heavy': 0x16, # Heavy attack
+      'changeRight': 0x2F, # Change right hand
+      'forward': 0x11, # Move forward
+      'use': 0x10, # Pick up objects/open doors 
+      'arrowUp': 0xC8, # Move up menu
+      'arrowDown': 0xD0, # Move down menu
+      'arrowLeft': 0xCB, # Move left menu
+      'arrowRight': 0xCD, # Move right menu
+      'pageUp': 0xC9, # Move to right menu
+      'pageDown': 0xC1 # Move to left menu
+  }
+#+END_SRC
+*** Focus Dark souls window
+**** Focus window using win32gui
+#+NAME: focusWindow win32gui
+#+BEGIN_SRC python :tangle focusDarkSouls.py :results silent :noweb-ref focusWindow
+  import win32gui
+  
+  def focusDarkSoulsWindow():
+      toplist = []
+      winlist = []
+  
+      def enum_callback(hwnd, results):
+          winlist.append((hwnd, win32gui.GetWindowText(hwnd)))
+  
+      win32gui.EnumWindows(enum_callback, toplist)
+      p = [(hwnd, title) for hwnd, title in winlist if 'DARK SOULS' == title.upper()]
+   
+      # The second parameter: 1, means focus and activate the window (SW_SHOWNORMAL)
+      # url: http://msdn.microsoft.com/en-us/library/windows/desktop/ms633548(v=vs.85).aspx
+      win32gui.ShowWindow(p[0][0],1)
+  
+  focusDarkSoulsWindow()
+#+END_SRC
+**** Focus window using SendKeys
+#+NAME: focusWindow sendkeys
+#+BEGIN_SRC python :noweb-ref focusWindow2 :results silent
+  import win32com.client
+  
+  shell = win32com.client.Dispatch("WScript.Shell")
+  shell.AppActivate("DARK SOULS")
+#+END_SRC
+
+*** Character creation
+**** New Game                                                   :noexport:
+#+NAME: New game
+#+BEGIN_SRC python :noweb-ref newGame :results silent :noweb yes
+
+<<header>>
+#import dictionary
+<<keyDictionary>>
+<<focusWindow2>>
+  
+time.sleep(1)
+win32api.keybd_event(0,HW_ACTION2CODE['arrowUp'],0,0)
+time.sleep(0.5)
+win32api.keybd_event(0,HW_ACTION2CODE['arrowUp'],KEYEVENTF_KEYUP,0)
+time.sleep(0.5)
+win32api.keybd_event(0,HW_ACTION2CODE['accept'],0,0)
+time.sleep(0.5)
+win32api.keybd_event(0,HW_ACTION2CODE['accept'],KEYEVENTF_KEYUP,0)
+
+#+END_SRC
+**** Character creation
+#+NAME: Character creation
+#+BEGIN_SRC python :noweb-ref characterCreation :noweb yes :tangle src/characterCreation.py :results silent
+# Only for debug
+<<header>>
+#import dictionary
+<<keyDictionary>>
+<<focusWindow2>>
+
+def enter():
+    time.sleep(0.05)
+    win32api.keybd_event(0,HW_ACTION2CODE['accept'],0,0)
+    time.sleep(0.05)
+    win32api.keybd_event(0,HW_ACTION2CODE['accept'],KEYEVENTF_KEYUP,0)
+
+def up():
+    time.sleep(0.05)
+    win32api.keybd_event(0,HW_ACTION2CODE['arrowUp'],0,0)
+    time.sleep(0.05)
+    win32api.keybd_event(0,HW_ACTION2CODE['arrowUp'],KEYEVENTF_KEYUP,0)
+
+def down():
+    time.sleep(0.05)
+    win32api.keybd_event(0,HW_ACTION2CODE['arrowDown'],0,0)
+    time.sleep(0.05)
+    win32api.keybd_event(0,HW_ACTION2CODE['arrowDown'],KEYEVENTF_KEYUP,0)
+
+def left():
+    time.sleep(0.05)
+    win32api.keybd_event(0,HW_ACTION2CODE['arrowLeft'],0,0)
+    time.sleep(0.05)
+    win32api.keybd_event(0,HW_ACTION2CODE['arrowLeft'],KEYEVENTF_KEYUP,0)
+
+time.sleep(3)
+enter()
+
+enter()
+
+time.sleep(0.5)
+# B virtual key
+win32api.keybd_event(0x42,0,0,0)
+
+time.sleep(0.1)
+# O virtual key
+win32api.keybd_event(0x4F,0,0,0)
+
+time.sleep(0.1)
+# T virtual key
+win32api.keybd_event(0x54,0,0,0)
+
+time.sleep(0.1)
+# Return virtual key
+win32api.keybd_event(0x0D,0,0,0)
+
+enter()
+enter()
+enter()
+down()
+down()
+enter()
+time.sleep(0.5)
+enter()
+up()
+up()
+up()
+enter()
+enter()
+enter()
+enter()
+enter()
+enter()
+enter()
+enter()
+enter()
+
+enter()
+left()
+enter()
+#+END_SRC
+**** Escape Intro                                               :noexport:
+#+NAME: Escape intro
+#+BEGIN_SRC python :results silent :noweb-ref introEscape :noweb yes
+<<characterCreation>>
+time.sleep(2)
+win32api.keybd_event(0,HW_ACTION2CODE['menu'],0,0)
+time.sleep(0.05)
+win32api.keybd_event(0,HW_ACTION2CODE['menu'],KEYEVENTF_KEYUP,0)
+time.sleep(3)
+win32api.keybd_event(0,HW_ACTION2CODE['menu'],0,0)
+time.sleep(0.05)
+win32api.keybd_event(0,HW_ACTION2CODE['menu'],KEYEVENTF_KEYUP,0)
+#+END_SRC
+*** Keylogger
+**** Description
+Until this point, i've write the calls by hand but, its so boring, slow and propense to errors.
+I'll make a keylogger which registers not only the keys but the time the key is pressed as well, so i can automaticatlly generate the code to repeat the keys sequence as many times as i want and with the same result.
+**** Requeriments
+You need the libraries:
+- [[http://sourceforge.net/projects/pyhook/files/][pyHook]]
+- [[sourceforge.net/projects/pywin32/files/][pywin32]]
+**** Code
+***** Keylogger sparse matrix
+#+NAME: Keylogger Sparse matrix
+#+BEGIN_SRC python :results silent :tangle src/keylogger2.py :noweb yes
+  import pyHook, sys, logging, pythoncom, time, threading
+  
+  file_log = 'E:\\org\\software\\python\\darkSouls\\data\\keylogger.txt'
+  
+  key_state = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  key_position = {
+      'backspace': 0, 'tab': 1, 'enter': 2, 'shift': 3, 'ctrl': 4, 'alt': 5,
+      'spacebar': 6, 'end': 7, 'home': 8, 'a': 9, 'c': 10, 'd': 11, 
+      'e': 12, 'f': 13, 'g': 14, 'h': 15, 'i': 16, 'j': 17, 'k': 18, 'l': 19,
+      'o': 20, 'r': 21, 's': 22, 'u': 23, 'v': 24, 'w': 25, 'q': 26, 
+      'arrowUp': 27, 'arrowDown': 28, 'arrowLeft': 29, 
+      'arrowRight': 30, 'pageUp': 31, 'pageDown': 32,
+  }
+  
+  # Aproximatly 1 KB/s
+  periode = 0.1
+  
+  def threadTime():
+      logging.basicConfig(filename=file_log, level=logging.DEBUG, format='%(message)s')
+      while True:
+          logging.log(10,":".join(map(str,key_state)))
+          time.sleep(periode)
+  
+  def OnKeyDown(event):
+      key = chr(event.Ascii)
+      if key in key_position:
+          if key_state[key_position[key]]  is 0:
+              key_state[key_position[key]] = 1
+      return True
+  
+  def OnKeyUp(event):
+      key = chr(event.Ascii)
+      if key in key_position:
+          if key_state[key_position[key]]  is 1:
+              key_state[key_position[key]] = 0
+      return True
+  
+  logging.basicConfig(filename=file_log, level=logging.DEBUG, format='%(message)s')
+  hooks_manager = pyHook.HookManager()
+  hooks_manager.KeyDown = OnKeyDown
+  hooks_manager.KeyUp= OnKeyUp
+  hooks_manager.HookKeyboard()
+  threadDeadTime = threading.Thread(target=threadTime)
+  # thread.deamon = True
+  threadTime.start()
+  pythoncom.PumpMessages()
+  
+#+END_SRC
+***** Keylogger storing row and column
+Description:\\
+The result of the last program was a sparse matrix where most of the values were 0's.\\
+The state it's binnary, so there is no reason to save the value of the matrix, either is 0 and we ignore it or 1. In other words, the only information we need to save it's the row and column of each 1, and we will be able to know the number of periods 
+and which key was pressed.
+#+NAME: Keylogger row,column
+#+BEGIN_SRC python :results silent :tangle src/keylogger_list.py :noweb yes
+  import pyHook, sys, logging, pythoncom, time, threading
+  
+  file_log = 'E:\\org\\software\\python\\darkSouls\\data\\keylogger2.txt'
+  
+  key_state = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  key_position = {
+      'Back': 0, 'Tab': 1, 'Return': 2, 'Lshift': 3, 'Lcontrol': 4, 'Lmenu': 5,
+      'Space': 6, 'End': 7, 'Home': 8, 'A': 9, 'C': 10, 'D': 11, 
+      'E': 12, 'F': 13, 'G': 14, 'H': 15, 'I': 16, 'J': 17, 'K': 18, 'L': 19,
+      'O': 20, 'R': 21, 'S': 22, 'U': 23, 'V': 24, 'W': 25, 'Q': 26, 
+      'Up': 27, 'Down': 28, 'Left': 29, 
+      'Right': 30, 'Prior': 31, 'Next': 32,
+  }
+  
+  periode = 0.25
+  
+  <<focusWindow2>>
+  
+  def threadTime():
+      logging.basicConfig(filename=file_log, level=logging.DEBUG, format='%(message)s')
+      periodCounter = 0
+      while True:
+          # line: <period>:<key>,<key>,<key>,....
+          if 1 in key_state:
+              line=str(periodCounter)+":"
+              for key,x in enumerate(key_state):
+                  if x == 1:
+                      line += str(key)+","
+              if line:
+                  logging.log(10,line[:-1])
+  
+          time.sleep(periode)
+          periodCounter+=1
+  
+  def OnKeyDown(event):
+      # key = chr(event.Ascii)
+      key = event.GetKey()
+      # logging.log(10,event.Ascii)
+      # logging.log(10,"getKey: "+event.GetKey())
+      if key in key_position:
+          if key_state[key_position[key]]  is 0:
+              key_state[key_position[key]] = 1
+      return True
+  
+  def OnKeyUp(event):
+      # key = chr(event.Ascii)
+      key = event.GetKey()
+      # logging.log(10,"getKey: "+event.GetKey())
+      # logging.log(10,event.Ascii)
+      if key in key_position:
+          if key_state[key_position[key]]  is 1:
+              key_state[key_position[key]] = 0
+      return True
+  
+  logging.basicConfig(filename=file_log, level=logging.DEBUG, format='%(message)s')
+  hooks_manager = pyHook.HookManager()
+  hooks_manager.KeyDown = OnKeyDown
+  hooks_manager.KeyUp= OnKeyUp
+  hooks_manager.HookKeyboard()
+  thread= threading.Thread(target=threadTime)
+  # thread.deamon = True
+  thread.start()
+  pythoncom.PumpMessages()
+  
+#+END_SRC
+***** Keylogger using a controller
+#+NAME: Keylogger controller
+#+BEGIN_SRC python :results silent :tangle src/keylogger_controller.py :noweb yes
+  import pyHook, sys, logging, pythoncom, time, threading
+  import pygame
+  from pygame.locals import *
+  
+  file_log = 'E:\\org\\software\\python\\darkSouls\\data\\keylogger3.txt'
+  
+  key_state = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  key_position = {
+      'Back': 0, 'Tab': 1, 'Return': 2, 'Lshift': 3, 'Lcontrol': 4, 'Lmenu': 5,
+      'Space': 6, 'End': 7, 'Home': 8, 'A': 9, 'C': 10, 'D': 11, 
+      'E': 12, 'F': 13, 'G': 14, 'H': 15, 'I': 16, 'J': 17, 'K': 18, 'L': 19,
+      'O': 20, 'R': 21, 'S': 22, 'U': 23, 'V': 24, 'W': 25, 'Q': 26, 
+      'Up': 27, 'Down': 28, 'Left': 29, 
+      'Right': 30, 'Prior': 31, 'Next': 32,
+  }
+  
+  periode = 0.25
+  
+  # I have to ignore all the axis values under 0.9 because the controller use rangs of values to increment gradually the velocity and i'm mapping all the actions
+  # as keyboard input, which use the maxim value always. To be able to make the movements with the same velocity i will have to use this restriction and make 
+  # sure to move the analogic all the way every time i want to register the key.
+  # The other option would be, play with the keyboard directly using the previous program, but i'm more used to the controller.
+  tolerance = 0.8
+   
+  def threadTime():
+      logging.basicConfig(filename=file_log, level=logging.DEBUG, format='%(message)s')
+      # logging.log(10,"Estoy en el thread!")
+      periodCounter = 0
+      while True:
+          # line: <period>:<key>,<key>,<key>,....
+          if 1 in key_state:
+              line=str(periodCounter)+":"
+              for key,x in enumerate(key_state):
+                  if x == 1:
+                      line += str(key)+","
+              if line:
+                  logging.log(10,line[:-1])
+  
+          # logging.log(10,str(key_state))
+          time.sleep(periode)
+          periodCounter+=1
+  
+  def buttonsController(nButton, value):
+      # A: 0
+      # B: 1
+      # X: 2
+      # Y: 3
+      # LB: 4
+      # RB: 5
+      # RB: 5
+      # back: 6
+      # start: 7
+      if nButton == 0:
+          # A controller = Q keyboard
+          key_state[key_position['Q']] = value
+      elif nButton == 1:
+          # B controller = Space keyboard
+          key_state[key_position['Space']] = value
+      elif nButton == 2:
+          # X controller = E keyboard
+          key_state[key_position['E']] = value
+      elif nButton == 3:
+          # Y controller = Alt keyboard
+          key_state[key_position['Lmenu']] = value
+      elif nButton == 4:
+          # LB controller = shift keyboard
+          key_state[key_position['Lshift']] = value
+      elif nButton == 5:
+          # RB controller = H keyboard
+          key_state[key_position['H']] = value
+      elif nButton == 6:
+          # back controller = G  keyboard
+          key_state[key_position['G']] = value
+      elif nButton == 7:
+          # start controller = End  keyboard
+          key_state[key_position['End']] = value
+  
+  def axisController(i,axis):
+      # Axis:
+      # - Left analog: 0->horitzontal (left - ,right + ), 1 -> vertical (up - ,down +)
+      # - Triggers (RT + ,LT -): 2
+      # - Right analog: 3->vertical (up -, down +) , 4 -> horitzontal (left -, right +)
+      # The range is always [-1,1] being the ~0 the starting position.
+      # I will use a tolerance of 0.15 before count it as a key press.
+  
+      print "Axis: {}, value: {}".format(i,axis)
+      # Character movement with left analogic
+      if i == 0:
+          if abs(axis) < tolerance:
+              key_state[key_position['A']] = 0
+              key_state[key_position['D']] = 0
+          elif axis > tolerance:
+              #Right
+              key_state[key_position['D']] = 1
+          else:
+              #Left
+              key_state[key_position['A']] = 1
+  
+      #No funciona
+      elif i == 1:
+          if abs(axis) < tolerance:
+              key_state[key_position['S']] = 0
+              key_state[key_position['W']] = 0
+          elif axis > tolerance:
+              #Down
+              key_state[key_position['S']] = 1
+          else:
+             #Up
+              key_state[key_position['W']] = 1
+  
+      #Triggers LT/RT
+      elif i == 2:
+          if abs(axis) < tolerance:
+              key_state[key_position['U']] = 0
+              key_state[key_position['Tab']] = 0
+          elif axis > tolerance:
+             #LT/Counter-attack
+              key_state[key_position['Tab']] = 1
+          else:
+              #RT/Strong-attack
+              key_state[key_position['U']] = 1
+  
+      #Camera movement with right analogic
+      # Value axis:
+      # <0.4 nothing
+      # >0.4 gradually increment
+      # Problem: I'm mapping the analog values of the controller with the discret values of the keyboard. The controller increments the velocity gradually
+      # while the keyboard use the maxim value for every press. That's why, if i want to use the controller, i will have to be sure to always move the analogs all
+      # the way, to make sure that the movement of the character correspond with the movement it would make using the keyboard
+      elif i == 3:
+          if abs(axis) < tolerance:
+              key_state[key_position['K']] = 0
+              key_state[key_position['I']] = 0
+          elif axis > tolerance:
+              #Down
+              key_state[key_position['K']] = 1
+          else:
+             #Up
+              key_state[key_position['I']] = 1
+      elif i == 4:
+          if abs(axis) < tolerance:
+              key_state[key_position['L']] = 0
+              key_state[key_position['J']] = 0
+          elif axis > tolerance:
+              #Down
+              key_state[key_position['L']] = 1
+          else:
+             #Up
+              key_state[key_position['J']] = 1
+  
+  logging.basicConfig(filename=file_log, level=logging.DEBUG, format='%(message)s')
+  "Opens a window and prints events to the terminal. Closes on ESC or QUIT."
+  pygame.init()
+  joystick = pygame.joystick.Joystick(0)
+  joystick.init()
+  
+  thread= threading.Thread(target=threadTime)
+  # thread.deamon = True
+  thread.start()
+  
+  axes = joystick.get_numaxes()
+  while 1:
+          # clock.tick(60)
+      try:
+          for event in pygame.event.get():
+                  if event.type == JOYBUTTONDOWN:
+                      # logging.log(10,"Down: "+str(event.button))
+                      buttonsController(event.button,1)
+                  elif event.type == JOYBUTTONUP:
+                      # logging.log(10,"Up: "+str(event.button))
+                      # print "Up: "+str(event.button)
+                      buttonsController(event.button,0)
+                  elif event.type == JOYAXISMOTION:
+                      # logging.log(10,"Axis:"+str(event.axis))
+                      for i in range(axes):
+                          # print "Axis: {}, value: {}".format(i,axes)
+                          axis = joystick.get_axis(i)
+                          axisController(i,axis)
+                                      
+      except:
+          pass
+  
+  # pythoncom.PumpMessages()
+  
+#+END_SRC
+****** TODO Hacer funcionar la cruz del mando                 :noexport:
+SCHEDULED: <2014-02-12 mié>
+****** TODO Cambiar la tolerancia hasta que sea parecida a la del juego, si no es posible contemplar la posibilidad de usar el teclado :noexport:
+SCHEDULED: <2014-02-12 mié>
+****** Documentation
+- http://www.youtube.com/watch?v=89tLH16_38M
+- http://nyrpnz.blogspot.com.es/2012/03/sdl-event-echoer.html
+- http://pygame.org/download.shtml
+- http://www.pygame.org/docs/ref/joystick.html#pygame.joystick.Joystick.get_axis
+
+*** Replay
+**** Description
+Now i need a program that can interpret the output of the keylogger to be able replay the game as it was recorded.
+**** Code
+Description:\\
+Now i need to take each line of <period>:<key>,<key>,... and make a program that interpret that data to execute the win32api calls.
+First of all, i need to read the file data and save it in a data structure. I will use a dictionary to do it, because there will be a lot of periods where there won't be any 
+key and i need to be able to access the keys of each period as fast as possible.\\
+With a dictionary i won't need to save a lot of empty positions for the periods with no keys and at the same time i will be able to access the keys fast when needed.
+#+NAME: Keylogger row,column
+#+BEGIN_SRC python :results silent :tangle src/replay.py :noweb yes
+  import pyHook, sys, logging, pythoncom, time, threading, re
+  <<header>>
+  <<focusWindow2>>
+  <<keyDictionary>>
+  file_log = 'E:\\org\\software\\python\\darkSouls\\data\\farmSoulsDrake.txt'
+  # file_log = 'E:\\org\\software\\python\\darkSouls\\data\\keylogger2.txt'
+  
+  key_state = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  
+  key_pressed = {
+      '0': 'backspace', '1': 'tab', '2': 'enter', '3': 'shift', '4': 'ctrl', '5': 'alt', 
+      '6': 'spacebar', '7': 'end', '8': 'home', '9': 'a', '10': 'c', '11': 'd', 
+      '12': 'e', '13': 'f', '14': 'g', '15': 'h', '16': 'i', '17': 'j', '18': 'k', '19': 'l', 
+      '20': 'o', '21': 'r', '22': 's', '23': 'u', '24': 'v', '25': 'w', '26': 'q', 
+      '27': 'arrowUp', '28': 'arrowDown', '29': 'arrowLeft', 
+      '30': 'arrowRight', '31': 'pageUp', '32': 'pageDown', 
+  }
+  
+  periode = 0.25
+  data = {}
+  
+  def data2Dictionary():
+     f = open(file_log,"r")
+     for line in f:
+        line = line.split("\n")[0]
+        period = line.split(":")[0]
+        keys = line.split(":")[1].split(",")
+        data[period] = keys
+     print "data2Dictionary: lastPeriod: "+str(period)
+     f.close()
+     return period
+     # thread= threading.Thread(target=threadTime,args=(int(period)))
+     # thread.deamon = True
+     # thread.start()
+  
+  def replay(lastPeriod):
+      periodCounter = 0
+      print data
+      while periodCounter <= int(lastPeriod):
+          # line: <period>:<key>,<key>,<key>,....
+          print "periodCounter {} <=> {} lastPeriod".format(periodCounter,lastPeriod)
+          if str(periodCounter) in data:
+              print "Periodo con info:"
+              #Grab the keys and do the calls
+              for key in data[str(periodCounter)]:
+                 if key_state[int(key)] == 0:
+                     nameKey = key_pressed[key]
+                     print "tecla: "+nameKey+" pulsada"
+                     win32api.keybd_event(0,HW_KEY2CODE[nameKey],0,0)
+                     key_state[int(key)] = 1
+              # If there is any extra key active in key_state  but not pressed, update the state
+              keysState = [i for i,x in enumerate(key_state) if x == 1]
+              keysDown = map(int,data[str(periodCounter)])
+              for key in keysState:
+                  if key not in keysDown:
+                     nameKey = key_pressed[str(key)]
+                     key_state[int(key)] = 0
+                     print "tecla: "+nameKey+" levantada"
+                     win32api.keybd_event(0,HW_KEY2CODE[nameKey],KEYEVENTF_KEYUP,0)
+          else:
+              if 1 in key_state:
+                  #Key up
+                  print "Limpia las teclas restantes"
+                  for x,y in enumerate(key_state):
+                      if y == 1:
+                          nameKey = key_pressed[str(x)]
+                          # key_state[int(key)] = 0
+                          key_state[int(x)] = 0
+                          print "tecla: "+nameKey+" levantada"
+                          win32api.keybd_event(0,HW_KEY2CODE[nameKey],KEYEVENTF_KEYUP,0)
+          time.sleep(periode)
+          periodCounter+=1
+  
+  p=data2Dictionary() 
+  while True:
+     replay(p)
+     time.sleep(10)
+  
+#+END_SRC
+**** TODO Optimizar la ruta para conseguir almas en el dragon
+SCHEDULED: <2014-02-13 jue>
+*** TODO Mejorar la respuesta 1 a 1 entre los programas y el juego :noexport:
+SCHEDULED: <2014-02-13 jue>
+*** Auxiliar code                                                :noexport:
+#+BEGIN_SRC python :results output
+  for i in range(1,256):
+      print "win32api.keybd_event(0,"+hex(i)+",0,0)"
+#+END_SRC
+
+#+BEGIN_SRC python :noweb yes :result silent
+  import win32com.client
+  import win32api
+  import time
+  
+  <<keyDictionary>>
+  shell = win32com.client.Dispatch("WScript.Shell")
+  shell.Run("notepad")
+  shell.AppActivate("notepad")
+  
+  time.sleep(1)
+  win32api.keybd_event(0,HW_ACTION2CODE['fordward'],0,0)
+#+END_SRC
+
+Some keys i didn't find out searching on the internet:
+#+BEGIN_SRC python :result silent
+  import win32com.client
+  import win32api
+  import time
+  
+  shell = win32com.client.Dispatch("WScript.Shell")
+  shell.AppActivate("DARK SOULS")
+  
+  
+  time.sleep(1)
+  # Arrow up
+  win32api.keybd_event(0,0xc8,0,0)
+  
+  time.sleep(1)
+  # Page Up
+  win32api.keybd_event(0,0xc9,0,0)
+  
+  time.sleep(1)
+  # Arrow left
+  win32api.keybd_event(0,0xcb,0,0)
+  
+  time.sleep(1)
+  # Arrow right
+  win32api.keybd_event(0,0xcd,0,0)
+  
+  time.sleep(1)
+  # Cancel menu
+  win32api.keybd_event(0,0xcf,0,0)
+  
+  time.sleep(1)
+  # # Arrow down
+  win32api.keybd_event(0,0xd0,0,0)
+  
+  time.sleep(1)
+  # Page down 
+  win32api.keybd_event(0,0xd1,0,0)
+  
+#+END_SRC
+*** Documentation and web references
+- [[http://www.codeproject.com/Articles/7305/Keyboard-Events-Simulation-using-keybd_event-funct][Scan code]]
+- [[http://msdn.microsoft.com/en-us/library/ff818516(v=vs.85).aspx][Windows API]]
+- [[http://msdn.microsoft.com/en-us/library/dd375731(v=vs.85).aspx][Virtual keys]]
+- [[http://msdn.microsoft.com/en-us/library/ms646304(v=vs.85).aspx][Keybd_event documentation]]
+- [[http://stackoverflow.com/questions/2791489/how-do-i-take-out-the-focus-or-minimize-a-window-with-python][Example of windows focus with python]]
+- [[http://www.codeproject.com/Articles/6819/SendKeys-in-C][Exemples of SendKeys]]
+- [[http://en.wikipedia.org/wiki/Scancode][Scancode Wikipedia]]
+- [[https://gist.github.com/chriskiehl/2906125][Virtual keys dictionary in python]]
+** Northem Undead Asylum
+*** Example doing it the boring and hard way
+#+NAME: Example hard way
+#+BEGIN_SRC python :results silent :noweb yes :tangle src/exampleHardWay_NorthemUndeadAsylum.py
+<<introEscape>>
+
+# Dbug only
+# header
+# keyDictionary
+# focusWindow2
+
+# Move to the corpse
+time.sleep(2)
+win32api.keybd_event(0,HW_ACTION2CODE['forward'],0,0)
+win32api.keybd_event(0,HW_ACTION2CODE['dodge'],0,0)
+time.sleep(0.5)
+win32api.keybd_event(0,HW_ACTION2CODE['forward'],KEYEVENTF_KEYUP,0)
+
+# Pick up the key
+time.sleep(0.1)
+win32api.keybd_event(0,HW_ACTION2CODE['use'],0,0)
+time.sleep(0.1)
+win32api.keybd_event(0,HW_ACTION2CODE['use'],KEYEVENTF_KEYUP,0)
+
+# Close window
+time.sleep(1)
+win32api.keybd_event(0,HW_ACTION2CODE['use'],0,0)
+time.sleep(0.1)
+win32api.keybd_event(0,HW_ACTION2CODE['use'],KEYEVENTF_KEYUP,0)
+
+# Look to the door
+time.sleep(0.1)
+win32api.keybd_event(0,HW_ACTION2CODE['cameraLeft'],0,0)
+time.sleep(0.3)
+win32api.keybd_event(0,HW_ACTION2CODE['cameraLeft'],KEYEVENTF_KEYUP,0)
+
+# move to the door
+time.sleep(0.1)
+win32api.keybd_event(0,hw_action2code['forward'],0,0)
+time.sleep(0.65)
+win32api.keybd_event(0,hw_action2code['left'],0,0)
+time.sleep(0.1)
+win32api.keybd_event(0,hw_action2code['left'],keyeventf_keyup,0)
+win32api.keybd_event(0,hw_action2code['forward'],keyeventf_keyup,0)
+
+# open the door
+time.sleep(0.1)
+win32api.keybd_event(0,hw_action2code['use'],0,0)
+time.sleep(0.1)
+win32api.keybd_event(0,hw_action2code['use'],keyeventf_keyup,0)
+
+# move camera behind
+time.sleep(2)
+win32api.keybd_event(0,hw_action2code['lock'],0,0)
+time.sleep(0.1)
+win32api.keybd_event(0,hw_action2code['lock'],keyeventf_keyup,0)
+
+# run forward to the stairs
+time.sleep(0.5)
+win32api.keybd_event(0,hw_action2code['forward'],0,0)
+# win32api.keybd_event(0,hw_action2code['cameraleft'],0,0)
+# time.sleep(0.1)
+# win32api.keybd_event(0,hw_action2code['cameraleft'],keyeventf_keyup,0)
+#win32api.keybd_event(0,hw_action2code['dodge'],0,0)
+time.sleep(12)
+win32api.keybd_event(0,hw_action2code['forward'],keyeventf_keyup,0)
+#+end_src
+** Infinite souls - undead burg
+Executing [[replay][replay]] using [[file:data/farmSoulsDrake.txt][this file]], you can collect a significant amount of souls (555 NG,>2000 NG+,...) with just a few secons for each iteration.

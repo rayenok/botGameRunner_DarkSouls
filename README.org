@@ -1,0 +1,27 @@
+#+TITLE:     botGameRunner - Dark Souls
+#+AUTHOR:    Eric Nova
+#+EMAIL:     ericnova3@gmail.com 
+#+DATE:      2014-02-15 sáb
+#+DESCRIPTION:
+#+KEYWORDS:
+#+LANGUAGE:  en
+#+OPTIONS:   H:3 num:nil toc:t \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
+#+OPTIONS:   TeX:t LaTeX:t skip:nil d:nil todo:t pri:nil tags:not-in-toc
+#+INFOJS_OPT: view:nil toc:nil ltoc:t mouse:underline buttons:0 path:http://orgmode.org/org-info.js
+#+EXPORT_SELECT_TAGS: export
+#+EXPORT_EXCLUDE_TAGS: noexport
+#+LINK_UP:   
+#+LINK_HOME: 
+#+XSLT:
+
+* Description
+Bot to automate parts of the game.\\
+For now it's only an excuse to learn to use some libraries like win32 and pygame, but maybe i'll end up automating
+a significant part of the game.
+** Image
+* Usage
+All the code is in the [[file:src/][src]] directory and you can find the usage as well as an explanation in the correspondent section
+of [[file:darkSouls.org][darkSouls.org]]
+* Examples
+- To record the xbox 360 controller keystrokes while playing, execute [[file:src/keylogger_controller.py][keylogger_controller.py]]
+- To replay the file output generated using the keyboard or the controller, execute [[file:src/replay.py][replay.py]]
