@@ -23,7 +23,7 @@ For being able to import and execute most of the code, you will need to import t
 I recommend you to use python 2.7 32 bit version. There is some libraries we will need to use which only have 32 bits version and if you are using the 64 bits python version, you will have problems
 to make it work. 
 
-[[http://avaminzhang.wordpress.com/2011/11/24/python-version-2-7-required-which-was-not-found-in-the-registry/][Here]] a website explaining how to do it in case you need it.\\
+[[http://avaminzhang.wordpress.com/2011/11/24/python-version-2-7-required-which-was-not-found-in-the-registry/][Here]] a website explaining how to do it in case you need it.
 
 Win32api and win32com are in the same module pywin32 which you can download using the [[http://sourceforge.net/projects/pywin32/files/][this link]]
 **** Code

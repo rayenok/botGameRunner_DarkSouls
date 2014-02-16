@@ -15,10 +15,10 @@
 #+XSLT:
 
 * Description
-Bot to automate parts of the game.\\
+Bot to automate parts of the game.
+
 For now it's only an excuse to learn to use some libraries like win32 and pygame, but maybe i'll end up automating
 a significant part of the game.
-** Image
 * Usage
 All the code is in the [[file:src/][src]] directory and you can find the usage as well as an explanation in the correspondent section
 of [[file:darkSouls.org][darkSouls.org]]
